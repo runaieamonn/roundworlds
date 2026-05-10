@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Round Worlds Project — Geophysical Atlas of the Solar System</title>
+  <meta name="description" content="An interactive geophysical atlas of all 34+ gravitationally-rounded worlds in our Solar System — planets, moons, dwarf planets, and candidates.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <a class="site-title" href="#top">ROUND<span>/</span>WORLDS</a>
+    <nav>
+      <a href="#narrative">The Case</a>
+      <a href="#atlas">Atlas</a>
+      <a href="#comparison-section">Compare</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO / NARRATIVE -->
+<div id="top"></div>
+<div class="hero" id="narrative">
+  <div class="hero-kicker">Geophysical Planet Definition</div>
+  <h1>The Solar System has <em>34+</em> worlds.<br>You've only heard of 8.</h1>
+  <div class="hero-body">
+    <p>
+      In 2006, the International Astronomical Union voted to define a "planet" as a body that
+      <em>clears its orbital neighborhood</em> — a bureaucratic criterion based on orbital
+      dynamics, not physics. By this rule, Pluto was demoted. Eight worlds survived. Hundreds
+      of real, geologically complex worlds were written out of the story.
+    </p>
+    <p>
+      The alternative — the <strong>Geophysical Planet Definition</strong> — holds that any
+      body large enough for its own gravity to pull it into a rounded shape (hydrostatic
+      equilibrium) is a world in the fullest sense. It has differentiated geology, likely
+      internal heat, and sufficient mass to shape its own surface over time.
+    </p>
+    <p>
+      By that definition, our Solar System contains at least <strong>34 confirmed round
+      worlds</strong>, with more awaiting confirmation in the outer dark. This atlas documents
+      all of them — from Jupiter's 318 Earth masses down to tiny Mimas, a snowball barely
+      large enough to hold its shape.
+    </p>
+  </div>
+  <div class="hero-stats">
+    <div class="stat-block">
+      <span class="stat-number">34+</span>
+      <span class="stat-desc">Geophysical Planets</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-number">8</span>
+      <span class="stat-desc">IAU Planets</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-number">88 AU</span>
+      <span class="stat-desc">Most Distant (Gonggong)</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-number">318×</span>
+      <span class="stat-desc">Largest Mass Ratio (Jupiter)</span>
+    </div>
+  </div>
+</div>
+
+<!-- ATLAS / WORLD GRID -->
+<section id="atlas">
+  <div class="section-heading">§ 01 — Geophysical Atlas</div>
+
+  <div class="controls">
+    <div class="control-group">
+      <span class="label">Sort by</span>
+      <div class="btn-group">
+        <button class="btn" data-sort="massEarth">Mass</button>
+        <button class="btn" data-sort="gravityG">Gravity</button>
+        <button class="btn" data-sort="distanceAU">Distance</button>
+        <button class="btn" data-sort="diameterEarth">Diameter</button>
+      </div>
+    </div>
+    <div class="control-group">
+      <span class="label">Show</span>
+      <div class="btn-group">
+        <button class="btn" data-filter="All">All</button>
+        <button class="btn filter-planet" data-filter="Planet">Planets</button>
+        <button class="btn filter-moon" data-filter="Moon">Moons</button>
+        <button class="btn filter-dwarf" data-filter="Dwarf Planet">Dwarfs</button>
+        <button class="btn filter-candidate" data-filter="Candidate">Candidates</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="world-grid" id="world-grid" role="list">
+    <!-- Populated by app.js -->
+  </div>
+</section>
+
+<!-- COMPARISON ENGINE -->
+<section id="comparison-section">
+  <div class="section-heading">§ 02 — Scale Comparison</div>
+
+  <div class="comparison-controls">
+    <span class="label">Compare to Earth:</span>
+    <select id="compare-select" aria-label="Select a body to compare to Earth">
+      <!-- Populated by app.js -->
+    </select>
+  </div>
+
+  <div class="scale-view" id="scale-view">
+    <div class="scale-body" id="compare-earth">
+      <div class="scale-circle"></div>
+      <div class="scale-name">Earth</div>
+      <div class="scale-diam">12,756 km</div>
+    </div>
+    <div class="scale-body" id="compare-body">
+      <div class="scale-circle"></div>
+      <div class="scale-name">—</div>
+      <div class="scale-diam">—</div>
+    </div>
+  </div>
+
+  <div class="comparison-info">
+    <div class="comparison-fact">
+      <strong id="compare-ratio">—</strong>
+      Relative diameter
+    </div>
+    <div class="comparison-fact">
+      <strong id="compare-gravity-text">—</strong>
+      Surface gravity (70 kg person)
+    </div>
+    <div class="comparison-fact">
+      <strong id="compare-mass-text">—</strong>
+      Mass relative to Earth
+    </div>
+    <div class="comparison-fact">
+      <strong id="compare-dist-text">—</strong>
+      Distance from Sun
+    </div>
+  </div>
+</section>
+
+<!-- MODAL OVERLAY -->
+<div id="modal-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <img id="modal-image" class="modal-image" src="" alt="" loading="lazy">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="modal-title">—</div>
+          <div class="modal-subtitle" id="modal-subtitle">—</div>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-shrink:0;">
+          <button id="compare-from-modal" class="btn" title="View in comparison engine">Compare ↓</button>
+          <button id="close-modal" class="close-btn" aria-label="Close">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-stats-grid">
+        <div class="modal-stat">
+          <span class="modal-stat-value" id="modal-stat-mass">—</span>
+          <span class="modal-stat-label">Mass</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-value" id="modal-stat-diam">—</span>
+          <span class="modal-stat-label">Diameter</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-value" id="modal-stat-grav">—</span>
+          <span class="modal-stat-label">Surface Gravity</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-value" id="modal-stat-dist">—</span>
+          <span class="modal-stat-label">Distance from Sun</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-value" id="modal-stat-atm">—</span>
+          <span class="modal-stat-label">Atmosphere</span>
+        </div>
+        <div class="modal-stat">
+          <span class="modal-stat-value" id="modal-stat-class">—</span>
+          <span class="modal-stat-label">Classification</span>
+        </div>
+      </div>
+
+      <!-- AU Progress Bar -->
+      <div class="au-progress">
+        <span class="label">Distance from Sun (log scale, capped at 100 AU)</span>
+        <div class="au-track">
+          <div class="au-fill" id="au-fill" style="width:0%">
+            <div class="au-marker" id="au-body-marker" style="left:100%"></div>
+          </div>
+          <div class="au-earth-marker" id="au-earth-marker" style="left:0%"></div>
+        </div>
+        <div class="au-labels">
+          <span>☉ Sun 0 AU</span>
+          <span>⊕ Earth 1 AU</span>
+          <span id="au-dist-label">—</span>
+        </div>
+      </div>
+
+      <blockquote class="modal-narrative" id="modal-narrative">—</blockquote>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p>
+    The Round Worlds Project &mdash; A Geophysical Atlas of the Solar System.<br>
+    Physical data sourced from the
+    <a href="https://nssdc.gsfc.nasa.gov/planetary/factsheet/" target="_blank" rel="noopener">NASA Planetary Fact Sheet</a>
+    and peer-reviewed literature.<br>
+    Images: NASA / JPL-Caltech / Wikimedia Commons (Public Domain &amp; CC).
+    <br><br>
+    <span style="color:var(--text3)">"The universe does not care about orbital neighborhoods."</span>
+  </p>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
