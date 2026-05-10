@@ -5,11 +5,12 @@ let state = {
   filters: new Set(["Planet", "Moon", "Dwarf Planet", "Candidate"]),
   compareBody: null,
   activeModal: null,
+  lastFocus: null,
 };
 
 /* ===== HELPERS ===== */
 const fmtMass = v => v >= 1 ? `${v.toFixed(2)}× Earth` : v >= 0.001 ? `${(v * 1000).toFixed(3)}×10⁻³ M⊕` : `${v.toExponential(2)} M⊕`;
-const fmtDiam = v => v >= 0.01 ? `${(v * 12756).toFixed(0)} km` : `${(v * 12756).toFixed(0)} km`;
+const fmtDiam = v => v >= 0.01 ? `${(v * 12756).toFixed(0)} km` : `${(v * 12756).toFixed(1)} km`;
 const fmtGrav = v => `${v.toFixed(3)} g`;
 const fmtAU   = v => v >= 10 ? `${v.toFixed(1)} AU` : `${v.toFixed(2)} AU`;
 const fmtBar  = v => v === 0 ? "None" : v < 0.0001 ? "Trace" : `${v} bar`;
@@ -21,14 +22,14 @@ const badgeClass = c => ({
   Candidate: "badge-candidate",
 }[c] || "badge-candidate");
 
-// AU bar scale: log scale, max out at ~950 AU (Sedna aphelion)
-const MAX_LOG_AU = Math.log10(100); // display cap at 100 AU for mini bars
+// Issue 8: log scale spanning 0.3–100 AU so inner planets register meaningfully
 const auPct = (au, cap = 100) => {
-  const pct = Math.log10(Math.max(au, 0.3)) / Math.log10(cap);
+  const MIN = 0.3;
+  const lo = Math.log10(MIN);
+  const hi = Math.log10(cap);
+  const pct = (Math.log10(Math.max(au, MIN)) - lo) / (hi - lo);
   return Math.min(Math.max(pct, 0), 1) * 100;
 };
-
-const bodyColor = body => body.color || "#888";
 
 /* ===== RENDER WORLD GRID ===== */
 function renderGrid() {
@@ -87,6 +88,7 @@ function openModal(id) {
   const body = BODIES.find(b => b.id === id);
   if (!body) return;
   state.activeModal = id;
+  state.lastFocus = document.activeElement;
 
   const MAX_AU_MODAL = 100;
   const earthPct = auPct(1, MAX_AU_MODAL);
@@ -108,34 +110,39 @@ function openModal(id) {
 
   document.getElementById("modal-narrative").textContent = body.standingThere;
 
-  // AU bar
-  const fill = document.getElementById("au-fill");
-  const marker = document.getElementById("au-body-marker");
+  // Bug 2 fix: body marker is a sibling of au-fill, so left% is relative to the track
+  const fill        = document.getElementById("au-fill");
+  const marker      = document.getElementById("au-body-marker");
   const earthMarker = document.getElementById("au-earth-marker");
-  fill.style.width = `${clampedBodyPct}%`;
-  marker.style.left = `${clampedBodyPct}%`;
-  earthMarker.style.left = `${earthPct}%`;
+  fill.style.width        = `${clampedBodyPct}%`;
+  marker.style.left       = `${clampedBodyPct}%`;
+  earthMarker.style.left  = `${earthPct}%`;
 
   const distLabel = document.getElementById("au-dist-label");
-  if (body.distanceAU > MAX_AU_MODAL) {
-    distLabel.textContent = `→ ${fmtAU(body.distanceAU)} (off scale)`;
-  } else {
-    distLabel.textContent = `${fmtAU(body.distanceAU)}`;
-  }
+  distLabel.textContent = body.distanceAU > MAX_AU_MODAL
+    ? `→ ${fmtAU(body.distanceAU)} (off scale)`
+    : fmtAU(body.distanceAU);
 
-  document.getElementById("modal-overlay").classList.add("open");
+  // Issue 7: aria-modal only active while open; move focus into modal
+  const overlay = document.getElementById("modal-overlay");
+  overlay.classList.add("open");
+  overlay.setAttribute("aria-modal", "true");
   document.body.style.overflow = "hidden";
+  document.getElementById("close-modal").focus();
 }
 
 function closeModal() {
-  document.getElementById("modal-overlay").classList.remove("open");
+  const overlay = document.getElementById("modal-overlay");
+  overlay.classList.remove("open");
+  overlay.removeAttribute("aria-modal");
   document.body.style.overflow = "";
   state.activeModal = null;
+  if (state.lastFocus && typeof state.lastFocus.focus === "function") {
+    state.lastFocus.focus();
+  }
 }
 
 /* ===== COMPARISON ENGINE ===== */
-const EARTH_PX = 200; // Earth display diameter in px
-
 function renderComparison() {
   const id = document.getElementById("compare-select").value;
   const body = BODIES.find(b => b.id === id);
@@ -143,9 +150,18 @@ function renderComparison() {
 
   const earth = BODIES.find(b => b.id === "earth");
 
-  // Scale relative to Earth
-  const earthPx = EARTH_PX;
-  const bodyPx  = Math.max(body.diameterEarth * earthPx, 4);
+  // Issue 6: scale both circles so the larger always fills MAX_PX
+  const MAX_PX = 500;
+  const BASE_PX = 200;
+  const ratio = body.diameterEarth;
+  let earthPx, bodyPx;
+  if (ratio >= 1) {
+    bodyPx  = MAX_PX;
+    earthPx = MAX_PX / ratio;
+  } else {
+    earthPx = BASE_PX;
+    bodyPx  = Math.max(BASE_PX * ratio, 4);
+  }
 
   const earthEl = document.getElementById("compare-earth");
   const bodyEl  = document.getElementById("compare-body");
@@ -157,8 +173,8 @@ function renderComparison() {
   earthCircle.style.height = `${earthPx}px`;
   earthCircle.style.background = `radial-gradient(circle at 38% 35%, ${earth.color}, #1a3a5c)`;
 
-  bodyCircle.style.width  = `${Math.min(bodyPx, 600)}px`;
-  bodyCircle.style.height = `${Math.min(bodyPx, 600)}px`;
+  bodyCircle.style.width  = `${bodyPx}px`;
+  bodyCircle.style.height = `${bodyPx}px`;
   bodyCircle.style.background = `radial-gradient(circle at 38% 35%, ${body.color}, #111)`;
 
   earthEl.querySelector(".scale-name").textContent = "Earth";
@@ -166,8 +182,6 @@ function renderComparison() {
   bodyEl.querySelector(".scale-name").textContent  = body.name;
   bodyEl.querySelector(".scale-diam").textContent  = `${fmtDiam(body.diameterEarth)}`;
 
-  // Info panel
-  const ratio = body.diameterEarth;
   document.getElementById("compare-ratio").textContent =
     ratio >= 1 ? `${ratio.toFixed(2)}× Earth's diameter`
                : `${(1 / ratio).toFixed(1)}× smaller than Earth`;
@@ -206,11 +220,8 @@ function setupControls() {
       const f = btn.dataset.filter;
       if (f === "All") {
         state.filters = new Set(["Planet", "Moon", "Dwarf Planet", "Candidate"]);
-        document.querySelectorAll("[data-filter]").forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
+        document.querySelectorAll("[data-filter]").forEach(b => b.classList.add("active"));
       } else {
-        // Remove "All" active state
-        document.querySelector("[data-filter='All']").classList.remove("active");
         if (state.filters.has(f)) {
           state.filters.delete(f);
           btn.classList.remove("active");
@@ -218,18 +229,17 @@ function setupControls() {
           state.filters.add(f);
           btn.classList.add("active");
         }
-        // If all 4 are active, switch back to "All"
-        if (state.filters.size === 4) {
-          document.querySelector("[data-filter='All']").classList.add("active");
-        }
+        // Keep "All" in sync: active iff all 4 categories are active
+        const allBtn = document.querySelector("[data-filter='All']");
+        allBtn.classList.toggle("active", state.filters.size === 4);
       }
       renderGrid();
     });
   });
 
-  // Activate default sort
+  // Bug 1 fix: all buttons start active to match state.filters (all 4 included)
   document.querySelector("[data-sort='massEarth']").classList.add("active");
-  document.querySelector("[data-filter='All']").classList.add("active");
+  document.querySelectorAll("[data-filter]").forEach(b => b.classList.add("active"));
 
   // Modal close
   document.getElementById("close-modal").addEventListener("click", closeModal);
@@ -259,7 +269,7 @@ function setupControls() {
   });
 }
 
-/* ===== POPULATE COMPARE SELECT & INIT ===== */
+/* ===== INIT ===== */
 function init() {
   setupControls();
   renderGrid();
